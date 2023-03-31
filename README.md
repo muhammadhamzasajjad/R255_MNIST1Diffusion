@@ -1,3 +1,4 @@
+Source repo (https://github.com/bot66/MNISTDiffusion)
 # MNIST Diffusion
 ![60 epochs training from scratch](assets/demo.gif "60 epochs training from scratch")
 
