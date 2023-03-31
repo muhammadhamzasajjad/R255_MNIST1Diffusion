@@ -3,7 +3,7 @@ import torch.nn as nn
 from torchvision.datasets import MNIST
 from torchvision import transforms 
 from torchvision.utils import save_image
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 from model import MNISTDiffusion
@@ -28,6 +28,13 @@ def create_mnist_dataloaders(batch_size,image_size=28,num_workers=4):
                         download=True,\
                         transform=preprocess
                         )
+    idx = train_dataset.targets==1
+    train_dataset.targets = train_dataset.targets[idx]
+    train_dataset.data = train_dataset.data[idx]
+
+    idx = test_dataset.targets==1
+    test_dataset.targets = test_dataset.targets[idx]
+    test_dataset.data = test_dataset.data[idx]
 
     return DataLoader(train_dataset,batch_size=batch_size,shuffle=True,num_workers=num_workers),\
             DataLoader(test_dataset,batch_size=batch_size,shuffle=True,num_workers=num_workers)
@@ -53,15 +60,27 @@ def parse_args():
 
     return args
 
+def set_require_grad(module, requires_grad=False):
+    for name, para in module.named_parameters():
+        para.requires_grad = requires_grad
 
 def main(args):
     device="cpu" if args.cpu else "cuda"
-    train_dataloader,test_dataloader=create_mnist_dataloaders(batch_size=args.batch_size,image_size=28)
+    train_dataloader,test_dataloader=create_mnist_dataloaders(batch_size=args.batch_size,image_size=32)
     model=MNISTDiffusion(timesteps=args.timesteps,
-                image_size=28,
+                image_size=32,
                 in_channels=1,
                 base_dim=args.model_base_dim,
-                dim_mults=[2,4]).to(device)
+                dim_mults=[4,12,32,32]).to(device)
+
+    set_require_grad(model.model, requires_grad=False)
+    #set_require_grad(model.model.init_conv, requires_grad=True)
+    set_require_grad(model.model.time_embedding, requires_grad=True)
+    set_require_grad(model.model.decoder_blocks[-1].time_mlp, requires_grad=True)
+    set_require_grad(model.model.decoder_blocks[-1].conv1, requires_grad=True)
+    set_require_grad(model.model.final_conv, requires_grad=True)
+
+    print(model.model)
 
     #torchvision ema setting
     #https://github.com/pytorch/vision/blob/main/references/classification/train.py#L317
