@@ -71,13 +71,14 @@ def main(args):
                 image_size=32,
                 in_channels=1,
                 base_dim=args.model_base_dim,
-                dim_mults=[4,12,32,32]).to(device)
+                dim_mults=[2,4,8,16]).to(device)
 
-    set_require_grad(model.model, requires_grad=False)
+    set_require_grad(model.model, requires_grad=False)      # freeze everything
     #set_require_grad(model.model.init_conv, requires_grad=True)
-    set_require_grad(model.model.time_embedding, requires_grad=True)
-    set_require_grad(model.model.decoder_blocks[-1].time_mlp, requires_grad=True)
-    set_require_grad(model.model.decoder_blocks[-1].conv1, requires_grad=True)
+    #set_require_grad(model.model.time_embedding, requires_grad=True)
+    #set_require_grad(model.model.decoder_blocks[-1].time_mlp, requires_grad=True)
+    #set_require_grad(model.model.decoder_blocks[-1].conv1, requires_grad=True)
+    set_require_grad(model.model.decoder_blocks[-1], requires_grad=True) # as per report, unfreeze entire last block
     set_require_grad(model.model.final_conv, requires_grad=True)
 
     print(model.model)
